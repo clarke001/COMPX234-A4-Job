@@ -10,6 +10,8 @@ import java.util.List;
 public class UDPClient {
     private  static  final  int Max_NUMBER_RETRIES = 5;
     private static final  int INITIAL_TIMEOUT = 1000;
+    private static final  int BLOCK_SIZE = 1000;
+
 
     public static void main(String[] args) throws Exception{
         if (args.length != 3){
@@ -50,7 +52,20 @@ public class UDPClient {
                 int filePort = Integer.parseInt(parts[5]);
 
                 System.out.println("File " + filename + " size: " + fileSize + ", port: " + filePort);
+
                 //  download the file
+                long bytesReceived = 0;
+                while (bytesReceived < fileSize) {
+                    long start = bytesReceived;
+                    long end = Math.min(bytesReceived + BLOCK_SIZE - 1, fileSize - 1);
+                    String fileRequest = "FILE " + filename + " GET START " + start + " END " + end;
+                    byte[] fileRequestBytes = fileRequest.getBytes();
+                    DatagramPacket fileRequestPacket = new DatagramPacket(fileRequestBytes, fileRequestBytes.length, serverAddress, filePort);
+                    socket.send(fileRequestPacket);
+                    System.out.println("Sent: " + fileRequest);
+                    // receives the file blocks
+                    bytesReceived += (end - start + 1);
+                }
             } else if (parts[0].equals("ERR") && parts[1].equals(filename)) {
                 System.err.println("Error: File " + filename + " not found");
             } else {
@@ -59,6 +74,7 @@ public class UDPClient {
         }
         socket.close();
     }
+
     private static String sendAndReceive(DatagramSocket socket, InetAddress address, int port, String request) throws Exception {
         byte[] requestBytes = request.getBytes();
         DatagramPacket requestPacket = new DatagramPacket(requestBytes, requestBytes.length, address, port);
