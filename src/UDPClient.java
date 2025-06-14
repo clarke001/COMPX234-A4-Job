@@ -37,6 +37,25 @@ public class UDPClient {
             DatagramPacket requestPacket = new DatagramPacket(requestBytes, requestBytes.length, serverAddress, port);
             socket.send(requestPacket);
             System.out.println("Sent: " + request);
+
+            byte[] buffer = new byte[1024];
+            DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
+            socket.receive(responsePacket);
+            String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
+            System.out.println("Received: " + response);
+
+            String[] parts = response.split(" ");
+            if (parts[0].equals("OK") && parts[1].equals(filename)) {
+                long fileSize = Long.parseLong(parts[3]);
+                int filePort = Integer.parseInt(parts[5]);
+
+                System.out.println("File " + filename + " size: " + fileSize + ", port: " + filePort);
+                //  download the file
+            } else if (parts[0].equals("ERR") && parts[1].equals(filename)) {
+                System.err.println("Error: File " + filename + " not found");
+            } else {
+                System.err.println("Invalid response for file " + filename);
+            }
         }
         socket.close();
     }
