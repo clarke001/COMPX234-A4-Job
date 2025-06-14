@@ -60,18 +60,13 @@ public class UDPClient {
                     long start = bytesReceived;
                     long end = Math.min(bytesReceived + BLOCK_SIZE - 1, fileSize - 1);
                     String fileRequest = "FILE " + filename + " GET START " + start + " END " + end;
-                    byte[] fileRequestBytes = fileRequest.getBytes();
-                    DatagramPacket fileRequestPacket = new DatagramPacket(fileRequestBytes, fileRequestBytes.length, serverAddress, filePort);
-                    socket.send(fileRequestPacket);
-                    System.out.println("Sent: " + fileRequest);
-
-                    // receives the file blocks
-                    byte[] buffer = new byte[2048]; // 容纳 Base64 编码数据
-                    DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
-                    socket.receive(responsePacket);
-                    String fileResponse = new String(responsePacket.getData(), 0, responsePacket.getLength());
+                    String fileResponse = sendAndReceive(socket, serverAddress, filePort, fileRequest);
+                    if (fileResponse == null) {
+                        System.err.println("Failed to receive chunk " + start + "-" + end + " for " + filename);
+                        break;}
                     System.out.println("Received: " + fileResponse);
 
+                    //Analyze the response
                     String[] fileParts = fileResponse.split(" ", 9);
                     if (fileParts[0].equals("FILE") && fileParts[1].equals(filename) && fileParts[2].equals("OK")) {
                         long respStart = Long.parseLong(fileParts[4]);
@@ -87,6 +82,7 @@ public class UDPClient {
                     }
                 }
                 file.close();
+                // Send CLOSE
                 String closeRequest = "FILE " + filename + " CLOSE";
                 String closeResponse = sendAndReceive(socket, serverAddress, filePort, closeRequest);
                 if (closeResponse == null || !closeResponse.equals("FILE " + filename + " CLOSE_OK")) {
