@@ -93,7 +93,15 @@ public class UDPServer {
                         DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, clientAddress, clientPort);
                         fileSocket.send(responsePacket);
                         System.out.println("Sent chunk: " + start + "-" + end);
-                    }}
+                    }else if (message.equals("FILE" + filename + "CLOSE")){
+                        String response = "FILE " + filename + " CLOSE_OK";
+                        byte[] responseBytes = response.getBytes();
+                        DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, clientAddress, clientPort);
+                        fileSocket.send(responsePacket);
+                        System.out.println("Sent: " + response);
+                        break;
+                    }
+                }
             } catch (Exception e) {
                 System.err.println("Error in file thread: " + e.getMessage());
             } finally {
