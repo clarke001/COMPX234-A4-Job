@@ -1,6 +1,7 @@
 import java.io.File;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class UDPServer {
     public static void main(String[] args) throws Exception {
@@ -23,10 +24,15 @@ public class UDPServer {
             if(message.startsWith("DOWNLOAD")){
                 String filename = message.substring(9).trim();
                 System.out.println("Parsed download request for file:" + filename);
+
                 File file = new File(filename);
                 String response;
+                int clientPort = packet.getPort();
+                InetAddress clientAddress = packet.getAddress();
                 if (file.exists() && file.isFile()) {
                     response = "OK " + filename + " SIZE " + file.length() + " PORT 50000";
+                    Thread fileThread = new Thread(new FileHandler(filename, clientAddress, clientPort));
+                    fileThread.start();
                 } else {
                     response = "ERR " + filename + " NOT_FOUND";
                 }
@@ -39,6 +45,19 @@ public class UDPServer {
             } else{
                 System.out.println("Incorrect message format");
             }
+        }
+    }
+    static class FileHandler implements Runnable {
+        private String filename;
+        private InetAddress clientAddress;
+        private int clientPort;
+        public FileHandler(String filename, InetAddress clientAddress, int clientPort) {
+            this.filename = filename;
+            this.clientAddress = clientAddress;
+            this.clientPort = clientPort;
+        }
+        public void run() {
+            System.out.println("Started thread to handle file: " + filename);
         }
     }
 }
