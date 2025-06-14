@@ -18,6 +18,14 @@ public class UDPServer {
             socket.receive(packet);
             String message = new String(packet.getData(), 0, packet.getLength());
             System.out.println("Received: " + message);
+
+            if(message.startsWith("DOWNLOAD")){
+                String filename = message.substring(9).trim();
+                System.out.println("Parsed download request for file:" + filename);
+
+            } else{
+                System.out.println("Incorrect message format");
+            }
         }
     }
 }
