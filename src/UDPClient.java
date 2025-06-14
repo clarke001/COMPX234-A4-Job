@@ -56,6 +56,7 @@ public class UDPClient {
                 RandomAccessFile file = new RandomAccessFile(filename,"rw") ;
                 //  download the file
                 long bytesReceived = 0;
+                System.out.print("Downloading " + filename + ": ");
                 while (bytesReceived < fileSize) {
                     long start = bytesReceived;
                     long end = Math.min(bytesReceived + BLOCK_SIZE - 1, fileSize - 1);

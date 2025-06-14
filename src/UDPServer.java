@@ -38,7 +38,7 @@ public class UDPServer {
                 int filePort = 5000 + rand.nextInt(1001);
 
                 if (file.exists() && file.isFile()) {
-                    response = "OK " + filename + " SIZE " + file.length() + " PORT 50000";
+                    response = "OK " + filename + " SIZE " + file.length() + " PORT" + filePort;
                     Thread fileThread = new Thread(new FileHandler(filename, clientAddress, clientPort,filePort));
                     fileThread.start();
                 } else {
@@ -46,7 +46,7 @@ public class UDPServer {
                 }
 
                 byte[] responseBytes = response.getBytes();
-                DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
+                DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, clientAddress, clientPort);
                 socket.send(responsePacket);
                 System.out.println("Sent to " + clientAddress + ":" + clientPort + ": " + response);
             } else{
@@ -96,7 +96,7 @@ public class UDPServer {
                         byte[] responseBytes = response.getBytes();
                         DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, clientAddress, clientPort);
                         fileSocket.send(responsePacket);
-                        System.out.println("Sent chunk: " + start + "-" + end);
+                        System.out.println("File thread sent to " + clientAddress + ":" + clientPort + ": chunk " + start + "-" + end);
                     }else if (message.equals("FILE" + filename + "CLOSE")){
                         String response = "FILE " + filename + " CLOSE_OK";
                         byte[] responseBytes = response.getBytes();
