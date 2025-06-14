@@ -3,10 +3,14 @@ import java.io.FileReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UDPClient {
+    private  static  final  int Max_NUMBER_RETRIES = 5;
+    private static final  int INITIAL_TIMEOUT = 1000;
+
     public static void main(String[] args) throws Exception{
         if (args.length != 3){
             System.err.println("Usage: java UDPClient <hostname> <port> <files.txt>");
@@ -33,15 +37,11 @@ public class UDPClient {
 
         for (String filename : filenames){
             String request = "DOWNLOAD" + filename;
-            byte[] requestBytes = request.getBytes();
-            DatagramPacket requestPacket = new DatagramPacket(requestBytes, requestBytes.length, serverAddress, port);
-            socket.send(requestPacket);
-            System.out.println("Sent: " + request);
-
-            byte[] buffer = new byte[1024];
-            DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
-            socket.receive(responsePacket);
-            String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
+            String response = sendAndReceive(socket, serverAddress, port, request);
+            if (response == null) {
+                System.err.println("Failed to download " + filename + " after " + Max_NUMBER_RETRIES + " retries");
+                continue;
+            }
             System.out.println("Received: " + response);
 
             String[] parts = response.split(" ");
@@ -59,4 +59,31 @@ public class UDPClient {
         }
         socket.close();
     }
+    private static String sendAndReceive(DatagramSocket socket, InetAddress address, int port, String request) throws Exception {
+        byte[] requestBytes = request.getBytes();
+        DatagramPacket requestPacket = new DatagramPacket(requestBytes, requestBytes.length, address, port);
+        byte[] buffer = new byte[1024];
+        DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
+
+        int retries = 0;
+        int timeout = INITIAL_TIMEOUT;
+        while (retries < Max_NUMBER_RETRIES) {
+            socket.send(requestPacket);
+            System.out.println("Sent: " + request + " (retry " + retries + ")");
+            socket.setSoTimeout(timeout);
+
+            try {
+                socket.receive(responsePacket);
+                String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
+                return response;
+            } catch (SocketTimeoutException e) {
+                retries++;
+                timeout *= 2; // 指数退避
+                System.out.println("Timeout, retrying...");
+            }
+         }
+        return null;
+    }
 }
+
+
