@@ -1,11 +1,11 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class UDPClient {
     private  static  final  int Max_NUMBER_RETRIES = 5;
@@ -53,6 +53,7 @@ public class UDPClient {
 
                 System.out.println("File " + filename + " size: " + fileSize + ", port: " + filePort);
 
+                RandomAccessFile file = new RandomAccessFile(filename,"rw") ;
                 //  download the file
                 long bytesReceived = 0;
                 while (bytesReceived < fileSize) {
@@ -63,9 +64,29 @@ public class UDPClient {
                     DatagramPacket fileRequestPacket = new DatagramPacket(fileRequestBytes, fileRequestBytes.length, serverAddress, filePort);
                     socket.send(fileRequestPacket);
                     System.out.println("Sent: " + fileRequest);
+
                     // receives the file blocks
-                    bytesReceived += (end - start + 1);
+                    byte[] buffer = new byte[2048]; // 容纳 Base64 编码数据
+                    DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
+                    socket.receive(responsePacket);
+                    String fileResponse = new String(responsePacket.getData(), 0, responsePacket.getLength());
+                    System.out.println("Received: " + fileResponse);
+
+                    String[] fileParts = fileResponse.split(" ", 9);
+                    if (fileParts[0].equals("FILE") && fileParts[1].equals(filename) && fileParts[2].equals("OK")) {
+                        long respStart = Long.parseLong(fileParts[4]);
+                        long respEnd = Long.parseLong(fileParts[6]);
+                        String encodedData = fileParts[8];
+                        byte[] data = Base64.getDecoder().decode(encodedData);
+                        file.seek(respStart);
+                        file.write(data);
+                        bytesReceived += (respEnd - respStart + 1);
+                    } else {
+                        System.err.println("Invalid file response for " + filename);
+                        break;
+                    }
                 }
+                file.close();
             } else if (parts[0].equals("ERR") && parts[1].equals(filename)) {
                 System.err.println("Error: File " + filename + " not found");
             } else {
