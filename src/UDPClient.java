@@ -76,12 +76,15 @@ public class UDPClient {
                         file.seek(respStart);
                         file.write(data);
                         bytesReceived += (respEnd - respStart + 1);
+                        System.out.print("*");
                     } else {
                         System.err.println("Invalid file response for " + filename);
                         break;
                     }
                 }
+                System.out.println();
                 file.close();
+
                 // Send CLOSE
                 String closeRequest = "FILE " + filename + " CLOSE";
                 String closeResponse = sendAndReceive(socket, serverAddress, filePort, closeRequest);
@@ -113,8 +116,12 @@ public class UDPClient {
 
             try {
                 socket.receive(responsePacket);
-                String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
-                return response;
+                if (responsePacket.getAddress().equals(address) && responsePacket.getPort() == port) {
+                    String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
+                    return response;
+                }else{
+                    System.out.println("Received response from unexpected source: " + responsePacket.getAddress() + ":" + responsePacket.getPort());
+                }
             } catch (SocketTimeoutException e) {
                 retries++;
                 timeout *= 2; // 指数退避
