@@ -7,6 +7,7 @@ import java.util.Base64;
 import java.util.Random;
 
 public class UDPServer {
+    private  static  final  Object fileLock = new Object();
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             System.err.println("Usage: java UDPServer <port>");
@@ -82,11 +83,14 @@ public class UDPServer {
                         String[] parts = message.split(" ");
                         int start = Integer.parseInt(parts[5]);
                         int end = Integer.parseInt(parts[7]);
-                        RandomAccessFile file = new RandomAccessFile(filename, "r");
-                        byte[] data = new byte[end - start + 1];
-                        file.seek(start);
-                        file.read(data);
-                        file.close();
+                        byte[] data;
+                        synchronized (fileLock) {
+                            RandomAccessFile file = new RandomAccessFile(filename, "r");
+                            file.seek(start);
+                            data = new byte[end - start + 1];
+                            file.read(data);
+                            file.close();
+                        }
                         String encodedData = Base64.getEncoder().encodeToString(data);
                         String response = "FILE " + filename + " OK START " + start + " END " + end + " DATA " + encodedData;
                         byte[] responseBytes = response.getBytes();
