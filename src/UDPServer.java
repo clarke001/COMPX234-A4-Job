@@ -17,13 +17,14 @@ public class UDPServer {
         int port = Integer.parseInt(args[0]);
         DatagramSocket socket = new DatagramSocket(port);
         byte[] buffer = new byte[1024];
+
         System.out.println("Server started on port " + port);
 
         while (true) {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
             String message = new String(packet.getData(), 0, packet.getLength());
-            System.out.println("Received: " + message);
+            System.out.println("Received from " + packet.getAddress() + ":" + packet.getPort() + ": " + message);
 
             if(message.startsWith("DOWNLOAD")){
                 String filename = message.substring(9).trim();
@@ -47,10 +48,9 @@ public class UDPServer {
                 byte[] responseBytes = response.getBytes();
                 DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
                 socket.send(responsePacket);
-                System.out.println("Sent: " + response);
-
+                System.out.println("Sent to " + clientAddress + ":" + clientPort + ": " + response);
             } else{
-                System.out.println("Incorrect message format");
+                System.out.println("Invalid message format from " + packet.getAddress() + ":" + packet.getPort());
             }
         }
     }
@@ -77,7 +77,7 @@ public class UDPServer {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     fileSocket.receive(packet);
                     String message = new String(packet.getData(), 0, packet.getLength());
-                    System.out.println("File thread received: " + message);
+                    System.out.println("File thread received from " + clientAddress + ":" + clientPort + ": " + message);
 
                     if (message.startsWith("FILE " + filename + " GET START ")) {
                         String[] parts = message.split(" ");
@@ -102,7 +102,7 @@ public class UDPServer {
                         byte[] responseBytes = response.getBytes();
                         DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, clientAddress, clientPort);
                         fileSocket.send(responsePacket);
-                        System.out.println("Sent: " + response);
+                        System.out.println("File thread sent to " + clientAddress + ":" + clientPort + ": " + response);
                         break;
                     }
                 }
