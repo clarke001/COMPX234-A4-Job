@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -29,6 +30,14 @@ public class UDPClient {
         // Create a UDP socket
         DatagramSocket socket = new DatagramSocket();
         InetAddress serverAddress = InetAddress.getByName(hostname);
+
+        for (String filename : filenames){
+            String request = "DOWNLOAD" + filename;
+            byte[] requestBytes = request.getBytes();
+            DatagramPacket requestPacket = new DatagramPacket(requestBytes, requestBytes.length, serverAddress, port);
+            socket.send(requestPacket);
+            System.out.println("Sent: " + request);
+        }
         socket.close();
     }
 }
