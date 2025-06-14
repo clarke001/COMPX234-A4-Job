@@ -1,7 +1,9 @@
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Base64;
 import java.util.Random;
 
 public class UDPServer {
@@ -64,7 +66,41 @@ public class UDPServer {
             this.filePort = filePort;
         }
         public void run() {
-            System.out.println("Started thread to handle file: " + filename);
+            DatagramSocket fileSocket = null;
+            try {
+                fileSocket = new DatagramSocket(filePort);
+                byte[] buffer = new byte[1024];
+                System.out.println("File thread started on port " + filePort + " for file: " + filename);
+
+                while (true) {
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                    fileSocket.receive(packet);
+                    String message = new String(packet.getData(), 0, packet.getLength());
+                    System.out.println("File thread received: " + message);
+
+                    if (message.startsWith("FILE " + filename + " GET START ")) {
+                        String[] parts = message.split(" ");
+                        int start = Integer.parseInt(parts[5]);
+                        int end = Integer.parseInt(parts[7]);
+                        RandomAccessFile file = new RandomAccessFile(filename, "r");
+                        byte[] data = new byte[end - start + 1];
+                        file.seek(start);
+                        file.read(data);
+                        file.close();
+                        String encodedData = Base64.getEncoder().encodeToString(data);
+                        String response = "FILE " + filename + " OK START " + start + " END " + end + " DATA " + encodedData;
+                        byte[] responseBytes = response.getBytes();
+                        DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, clientAddress, clientPort);
+                        fileSocket.send(responsePacket);
+                        System.out.println("Sent chunk: " + start + "-" + end);
+                    }}
+            } catch (Exception e) {
+                System.err.println("Error in file thread: " + e.getMessage());
+            } finally {
+                if (fileSocket != null) {
+                    fileSocket.close();
+                }
+            }
         }
     }
 }
