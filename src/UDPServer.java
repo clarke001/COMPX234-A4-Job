@@ -2,6 +2,7 @@ import java.io.File;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Random;
 
 public class UDPServer {
     public static void main(String[] args) throws Exception {
@@ -29,9 +30,12 @@ public class UDPServer {
                 String response;
                 int clientPort = packet.getPort();
                 InetAddress clientAddress = packet.getAddress();
+                Random rand = new Random();
+                int filePort = 5000 + rand.nextInt(1001);
+
                 if (file.exists() && file.isFile()) {
                     response = "OK " + filename + " SIZE " + file.length() + " PORT 50000";
-                    Thread fileThread = new Thread(new FileHandler(filename, clientAddress, clientPort));
+                    Thread fileThread = new Thread(new FileHandler(filename, clientAddress, clientPort,filePort));
                     fileThread.start();
                 } else {
                     response = "ERR " + filename + " NOT_FOUND";
@@ -51,10 +55,13 @@ public class UDPServer {
         private String filename;
         private InetAddress clientAddress;
         private int clientPort;
-        public FileHandler(String filename, InetAddress clientAddress, int clientPort) {
+        private  int filePort;
+
+        public FileHandler(String filename, InetAddress clientAddress, int clientPort,int filePort) {
             this.filename = filename;
             this.clientAddress = clientAddress;
             this.clientPort = clientPort;
+            this.filePort = filePort;
         }
         public void run() {
             System.out.println("Started thread to handle file: " + filename);
