@@ -87,6 +87,12 @@ public class UDPClient {
                     }
                 }
                 file.close();
+                String closeRequest = "FILE " + filename + " CLOSE";
+                String closeResponse = sendAndReceive(socket, serverAddress, filePort, closeRequest);
+                if (closeResponse == null || !closeResponse.equals("FILE " + filename + " CLOSE_OK")) {
+                    System.err.println("Failed to close file " + filename);
+                }else {
+                    System.out.println("Received: " + closeResponse);}
             } else if (parts[0].equals("ERR") && parts[1].equals(filename)) {
                 System.err.println("Error: File " + filename + " not found");
             } else {
